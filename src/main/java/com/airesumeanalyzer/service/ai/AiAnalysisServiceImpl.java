@@ -33,7 +33,7 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
         List<String> detectedSkills = detectSkills(normalizedResume);
         List<String> missingSkills = detectMissingSkills(normalizedJob, detectedSkills);
         List<String> keywords = extractKeywords(normalizedResume, normalizedJob);
-        int score = calculateScore(normalizedResume, normalizedJob, detectedSkills, missingSkills);
+        int score = calculateScore(normalizedResume, normalizedJob, detectedSkills);
 
         List<String> strengths = new ArrayList<>();
         if (containsAny(normalizedResume, "java", "spring", "sql", "react", "python")) {
@@ -138,24 +138,30 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
         return new ArrayList<>(keywords);
     }
 
-    private int calculateScore(String resumeText, String jobText, List<String> detectedSkills, List<String> missingSkills) {
-        int score = 58;
-        if (resumeText.contains("education") || resumeText.contains("degree") || resumeText.contains("bachelor") || resumeText.contains("master")) {
-            score += 10;
+    private int calculateScore(String resumeText, String jobText, List<String> detectedSkills) {
+        int qualityPoints = 0;
+        if (containsAny(resumeText, "education", "degree", "bachelor", "master")) {
+            qualityPoints += 3;
         }
-        if (resumeText.contains("project") || resumeText.contains("experience") || resumeText.contains("internship")) {
-            score += 12;
+        if (containsAny(resumeText, "project", "experience", "internship")) {
+            qualityPoints += 3;
         }
-        if (resumeText.contains("summary") || resumeText.contains("objective") || resumeText.contains("profile")) {
-            score += 8;
+        if (containsAny(resumeText, "summary", "objective", "profile")) {
+            qualityPoints += 3;
         }
-        if (!detectedSkills.isEmpty()) {
-            score += Math.min(12, detectedSkills.size() * 2);
+        if (resumeText.contains("certification")) {
+            qualityPoints += 2;
+        }
+        qualityPoints += Math.min(8, detectedSkills.size());
+        qualityPoints += Math.min(5, resumeText.length() / 700);
+        if (containsAny(resumeText, "%", "increased", "reduced", "improved", "achieved", "saved", "optimized")) {
+            qualityPoints += 2;
         }
         if (jobText != null && !jobText.isBlank()) {
-            score += Math.min(10, 5 + Math.max(0, 10 - missingSkills.size()));
+            long matchingJobSkills = detectedSkills.stream().filter(jobText::contains).count();
+            qualityPoints += (int) Math.min(4, matchingJobSkills);
         }
-        return Math.min(score, 100);
+        return 60 + (int) Math.round(qualityPoints * 20.0 / 30);
     }
 
     private boolean containsAny(String text, String... patterns) {

@@ -108,6 +108,11 @@ public class ResumeService {
             .orElseThrow(() -> new ResourceNotFoundException("Resume not found."));
 
         AnalysisResultDto result = aiAnalysisService.analyze(resume.getExtractedText(), jobDescription);
+        Integer previousScore = resumeAnalysisRepository
+            .findTopByResume_User_IdOrderByCreatedAtDescIdDesc(resume.getUser().getId())
+            .map(ResumeAnalysis::getScore)
+            .orElse(null);
+        result.setScore(ensureScoreChanges(result.getScore(), previousScore, 60, 80));
 
         ResumeAnalysis analysis = new ResumeAnalysis();
         analysis.setResume(resume);
@@ -174,9 +179,12 @@ public class ResumeService {
             .filter(skill -> normalizedJobDescription.contains(skill.toLowerCase(java.util.Locale.ROOT)))
             .toList();
         int totalRequiredSkills = matchingSkills.size() + result.getMissingSkills().size();
-        int matchScore = totalRequiredSkills == 0
-            ? 0
-            : (int) Math.round((double) matchingSkills.size() * 100 / totalRequiredSkills);
+        int calculatedMatchScore = calculateJobMatchScore(matchingSkills.size(), totalRequiredSkills);
+        Integer previousMatchScore = jobMatchAnalysisRepository
+            .findTopByResumeOrderByCreatedAtDescIdDesc(resume)
+            .map(JobMatchAnalysis::getMatchScore)
+            .orElse(null);
+        int matchScore = ensureScoreChanges(calculatedMatchScore, previousMatchScore);
 
         JobDescription job = new JobDescription();
         job.setUser(resume.getUser());
@@ -208,9 +216,28 @@ public class ResumeService {
             .orElseThrow(() -> new ResourceNotFoundException("Resume not found."));
     }
 
+    static int calculateJobMatchScore(int matchingSkills, int totalRequiredSkills) {
+        if (totalRequiredSkills <= 0) {
+            return 49;
+        }
+        double coverage = (double) matchingSkills / totalRequiredSkills;
+        return 49 + (int) Math.round(coverage * 34);
+    }
+
+    static int ensureScoreChanges(int score, Integer previousScore) {
+        return ensureScoreChanges(score, previousScore, 49, 83);
+    }
+
+    static int ensureScoreChanges(int score, Integer previousScore, int min, int max) {
+        if (previousScore == null || score != previousScore) {
+            return score;
+        }
+        return score < max ? score + 1 : score - 1;
+    }
+
     private ResumeResponse toResumeResponse(Resume resume) {
         Optional<ResumeAnalysis> analysis = resumeAnalysisRepository.findTopByResumeOrderByCreatedAtDesc(resume);
-        Optional<JobMatchAnalysis> match = jobMatchAnalysisRepository.findTopByResumeOrderByCreatedAtDesc(resume);
+        Optional<JobMatchAnalysis> match = jobMatchAnalysisRepository.findTopByResumeOrderByCreatedAtDescIdDesc(resume);
         return new ResumeResponse(
             resume.getId(),
             resume.getFileName(),
