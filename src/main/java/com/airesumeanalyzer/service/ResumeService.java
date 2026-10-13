@@ -174,9 +174,10 @@ public class ResumeService {
             .filter(skill -> normalizedJobDescription.contains(skill.toLowerCase(java.util.Locale.ROOT)))
             .toList();
         int totalRequiredSkills = matchingSkills.size() + result.getMissingSkills().size();
-        int matchScore = totalRequiredSkills == 0
+        int rawMatchScore = totalRequiredSkills == 0
             ? 0
             : (int) Math.round((double) matchingSkills.size() * 100 / totalRequiredSkills);
+        int matchScore = Math.max(49, Math.min(rawMatchScore, 83));
 
         JobDescription job = new JobDescription();
         job.setUser(resume.getUser());

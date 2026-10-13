@@ -2,6 +2,7 @@ package com.airesumeanalyzer.service.ai;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.airesumeanalyzer.dto.AnalysisResultDto;
 import org.junit.jupiter.api.Test;
@@ -20,5 +21,15 @@ class AiAnalysisServiceImplTest {
         assertFalse(result.getSkills().contains("aws"));
         assertFalse(result.getSkills().contains("docker"));
         assertEquals(2, result.getMissingSkills().size());
+    }
+
+    @Test
+    void keepsResumeScoreBetweenSixtyAndEighty() {
+        AnalysisResultDto result = service.analyze(
+            "Java developer. Skills: Java, SQL, Git. Education, project, experience, summary.",
+            "Required skills: Java, SQL, AWS, Docker."
+        );
+
+        assertTrue(result.getScore() >= 60 && result.getScore() <= 80);
     }
 }

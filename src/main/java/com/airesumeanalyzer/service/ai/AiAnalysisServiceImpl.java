@@ -155,7 +155,7 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
         if (jobText != null && !jobText.isBlank()) {
             score += Math.min(10, 5 + Math.max(0, 10 - missingSkills.size()));
         }
-        return Math.min(score, 100);
+        return Math.max(60, Math.min(score, 80));
     }
 
     private boolean containsAny(String text, String... patterns) {
