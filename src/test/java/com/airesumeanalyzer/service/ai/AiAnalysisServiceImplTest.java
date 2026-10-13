@@ -32,4 +32,18 @@ class AiAnalysisServiceImplTest {
 
         assertTrue(result.getScore() >= 60 && result.getScore() <= 80);
     }
+
+    @Test
+    void resumeScoresRespondToResumeContent() {
+        AnalysisResultDto shortResume = service.analyze("Java developer.", null);
+        AnalysisResultDto detailedResume = service.analyze(
+            "Professional summary. Education: bachelor's degree. Experience and projects. "
+                + "Skills: Java, JavaScript, Python, React, SQL, MySQL, Git, Docker. "
+                + "Certification earned. Improved performance by 25%. "
+                + "Delivered multiple projects with measurable results and optimized systems.",
+            null
+        );
+
+        assertTrue(detailedResume.getScore() > shortResume.getScore());
+    }
 }
